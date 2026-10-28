@@ -1,80 +1,142 @@
 from pico2d import (load_image, get_time, SDL_KEYDOWN, SDL_KEYUP,
-                    SDLK_SPACE, SDLK_LEFT, SDLK_RIGHT, SDLK_a)
-from transitions import Machine
+                    SDLK_SPACE, SDLK_LEFT, SDLK_RIGHT)
+
+RUN_SPEED = 5
+IDLE_TIMEOUT = 5.0
+
+
+def key_down(e, key):
+    return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == key
+
+
+def key_up(e, key):
+    return e[0] == 'INPUT' and e[1].type == SDL_KEYUP and e[1].key == key
+
+
+def arrow_down(boy, e):
+    return key_down(e, SDLK_LEFT) or key_down(e, SDLK_RIGHT)
+
+
+def run_key_up(boy, e):
+    # only the key of the current running direction stops the boy
+    return (key_up(e, SDLK_RIGHT) and boy.dir == 1) or \
+           (key_up(e, SDLK_LEFT) and boy.dir == -1)
+
+
+def space_down(boy, e):
+    return key_down(e, SDLK_SPACE)
+
+
+def time_out(boy, e):
+    return e[0] == 'TIME_OUT'
+
+
+class Idle:
+    @staticmethod
+    def enter(boy, e):
+        boy.dir = 0
+        boy.start_time = get_time()
+
+    @staticmethod
+    def exit(boy, e):
+        pass
+
+    @staticmethod
+    def do(boy):
+        boy.frame = (boy.frame + 1) % 8
+        if get_time() - boy.start_time >= IDLE_TIMEOUT:
+            boy.state_machine.handle_event(('TIME_OUT', 0))
+
+    @staticmethod
+    def draw(boy):
+        row = 300 if boy.face_dir == 1 else 200
+        boy.image.clip_draw(boy.frame * 100, row, 100, 100, boy.x, boy.y)
+
+
+class Sleep:
+    @staticmethod
+    def enter(boy, e):
+        pass
+
+    @staticmethod
+    def exit(boy, e):
+        pass
+
+    @staticmethod
+    def do(boy):
+        boy.frame = (boy.frame + 1) % 8
+
+    @staticmethod
+    def draw(boy):
+        row = 300 if boy.face_dir == 1 else 200
+        boy.image.clip_draw(boy.frame * 100, row, 100, 100, boy.x, boy.y)
+
+
+class Run:
+    @staticmethod
+    def enter(boy, e):
+        boy.dir = boy.face_dir = 1 if key_down(e, SDLK_RIGHT) else -1
+
+    @staticmethod
+    def exit(boy, e):
+        pass
+
+    @staticmethod
+    def do(boy):
+        boy.frame = (boy.frame + 1) % 8
+        boy.x += boy.dir * RUN_SPEED
+
+    @staticmethod
+    def draw(boy):
+        row = 100 if boy.face_dir == 1 else 0
+        boy.image.clip_draw(boy.frame * 100, row, 100, 100, boy.x, boy.y)
+
+
+class StateMachine:
+    def __init__(self, boy):
+        self.boy = boy
+        self.cur_state = Idle
+        self.transitions = {
+            Idle: [(time_out, Sleep), (arrow_down, Run)],
+            Sleep: [(space_down, Idle), (arrow_down, Run)],
+            Run: [(run_key_up, Idle), (arrow_down, Run)],
+        }
+
+    def start(self):
+        self.cur_state.enter(self.boy, ('START', 0))
+
+    def handle_event(self, e):
+        for check, next_state in self.transitions[self.cur_state]:
+            if check(self.boy, e):
+                self.cur_state.exit(self.boy, e)
+                self.cur_state = next_state
+                self.cur_state.enter(self.boy, e)
+                return True
+        return False
+
+    def update(self):
+        self.cur_state.do(self.boy)
+
+    def draw(self):
+        self.cur_state.draw(self.boy)
 
 
 class Boy:
-    states = ['IDLE', 'SLEEP', 'RUN', 'AUTORUN']
-
     def __init__(self):
         self.x, self.y = 400, 90
         self.frame = 0
         self.face_dir = 1
         self.dir = 0
+        self.start_time = 0
         self.image = load_image('animation_sheet.png')
-        self.machine = Machine(model=self, states=Boy.states, initial='IDLE',
-                               auto_transitions=False)
-        self.machine.add_transition('time_out', 'IDLE', 'SLEEP')
-        self.machine.add_transition('space_down', 'SLEEP', 'IDLE')
-        self.machine.add_transition('run', ['IDLE', 'SLEEP', 'AUTORUN'], 'RUN')
-        self.machine.add_transition('stop', 'RUN', 'IDLE')
-        self.machine.add_transition('auto_run', ['IDLE', 'SLEEP'], 'AUTORUN')
-        self.machine.add_transition('auto_run_end', 'AUTORUN', 'IDLE')
-        self.idle_start_time = get_time()
-        self.auto_run_start_time = get_time()
-
-    def on_enter_IDLE(self):
-        self.idle_start_time = get_time()
-
-    def on_enter_AUTORUN(self):
-        self.dir = self.face_dir
-        self.auto_run_start_time = get_time()
+        self.state_machine = StateMachine(self)
+        self.state_machine.start()
 
     def handle_event(self, event):
-        if event.type == SDL_KEYDOWN:
-            if self.state == 'SLEEP' and event.key == SDLK_SPACE:
-                self.space_down()
-            elif self.state in ('IDLE', 'SLEEP') and event.key == SDLK_a:
-                self.auto_run()
-            elif event.key in (SDLK_LEFT, SDLK_RIGHT):
-                self.dir = self.face_dir = 1 if event.key == SDLK_RIGHT else -1
-                if self.state != 'RUN':
-                    self.run()
-        elif event.type == SDL_KEYUP and self.state == 'RUN':
-            if (event.key == SDLK_RIGHT and self.dir == 1) or \
-                    (event.key == SDLK_LEFT and self.dir == -1):
-                self.dir = 0
-                self.stop()
+        self.state_machine.handle_event(('INPUT', event))
 
     def update(self):
-        if self.state == 'IDLE':
-            self.frame = (self.frame + 1) % 8
-            if get_time() - self.idle_start_time >= 5.0:
-                self.time_out()
-        elif self.state == 'RUN':
-            self.frame = (self.frame + 1) % 8
-            self.x += self.dir * 5
-        elif self.state == 'AUTORUN':
-            self.frame = (self.frame + 1) % 8
-            self.x += self.dir * 15
-            if self.x >= 800:
-                self.x = 800
-                self.dir = self.face_dir = -1
-            elif self.x <= 0:
-                self.x = 0
-                self.dir = self.face_dir = 1
-            if get_time() - self.auto_run_start_time >= 5.0:
-                self.dir = 0
-                self.auto_run_end()
+        self.state_machine.update()
 
     def draw(self):
-        size = 100
-        if self.state == 'AUTORUN':
-            row = 100 if self.face_dir == 1 else 0
-            size = 200
-        elif self.state == 'RUN':
-            row = 100 if self.face_dir == 1 else 0
-        else:
-            row = 300 if self.face_dir == 1 else 200
-        self.image.clip_draw(self.frame * 100, row, 100, 100,
-                             self.x, self.y + (size - 100) // 2, size, size)
+        self.state_machine.draw()
