@@ -56,7 +56,7 @@ class Boy:
             self.x += self.dir * 5
         elif self.state == 'AUTORUN':
             self.frame = (self.frame + 1) % 8
-            self.x += self.dir * 5
+            self.x += self.dir * 15
             if get_time() - self.auto_run_start_time >= 5.0:
                 self.dir = 0
                 self.auto_run_end()
