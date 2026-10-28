@@ -1,8 +1,9 @@
 from pico2d import (load_image, get_time, SDL_KEYDOWN, SDL_KEYUP,
-                    SDLK_SPACE, SDLK_LEFT, SDLK_RIGHT)
+                    SDLK_SPACE, SDLK_LEFT, SDLK_RIGHT, SDLK_a)
 
 RUN_SPEED = 5
 IDLE_TIMEOUT = 5.0
+AUTORUN_TIMEOUT = 5.0
 
 
 def key_down(e, key):
@@ -25,6 +26,10 @@ def run_key_up(boy, e):
 
 def space_down(boy, e):
     return key_down(e, SDLK_SPACE)
+
+
+def a_down(boy, e):
+    return key_down(e, SDLK_a)
 
 
 def time_out(boy, e):
@@ -92,14 +97,38 @@ class Run:
         boy.image.clip_draw(boy.frame * 100, row, 100, 100, boy.x, boy.y)
 
 
+class AutoRun:
+    @staticmethod
+    def enter(boy, e):
+        boy.dir = boy.face_dir
+        boy.start_time = get_time()
+
+    @staticmethod
+    def exit(boy, e):
+        pass
+
+    @staticmethod
+    def do(boy):
+        boy.frame = (boy.frame + 1) % 8
+        boy.x += boy.dir * RUN_SPEED
+        if get_time() - boy.start_time >= AUTORUN_TIMEOUT:
+            boy.state_machine.handle_event(('TIME_OUT', 0))
+
+    @staticmethod
+    def draw(boy):
+        row = 100 if boy.face_dir == 1 else 0
+        boy.image.clip_draw(boy.frame * 100, row, 100, 100, boy.x, boy.y)
+
+
 class StateMachine:
     def __init__(self, boy):
         self.boy = boy
         self.cur_state = Idle
         self.transitions = {
-            Idle: [(time_out, Sleep), (arrow_down, Run)],
-            Sleep: [(space_down, Idle), (arrow_down, Run)],
+            Idle: [(time_out, Sleep), (arrow_down, Run), (a_down, AutoRun)],
+            Sleep: [(space_down, Idle), (arrow_down, Run), (a_down, AutoRun)],
             Run: [(run_key_up, Idle), (arrow_down, Run)],
+            AutoRun: [(time_out, Idle), (arrow_down, Run)],
         }
 
     def start(self):
