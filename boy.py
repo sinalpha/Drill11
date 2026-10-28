@@ -2,6 +2,7 @@ from pico2d import (load_image, get_time, SDL_KEYDOWN, SDL_KEYUP,
                     SDLK_SPACE, SDLK_LEFT, SDLK_RIGHT, SDLK_a)
 
 RUN_SPEED = 5
+AUTORUN_SPEED = 15
 IDLE_TIMEOUT = 5.0
 AUTORUN_TIMEOUT = 5.0
 
@@ -110,7 +111,7 @@ class AutoRun:
     @staticmethod
     def do(boy):
         boy.frame = (boy.frame + 1) % 8
-        boy.x += boy.dir * RUN_SPEED
+        boy.x += boy.dir * AUTORUN_SPEED
         if get_time() - boy.start_time >= AUTORUN_TIMEOUT:
             boy.state_machine.handle_event(('TIME_OUT', 0))
 
