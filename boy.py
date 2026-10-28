@@ -57,6 +57,12 @@ class Boy:
         elif self.state == 'AUTORUN':
             self.frame = (self.frame + 1) % 8
             self.x += self.dir * 15
+            if self.x >= 800:
+                self.x = 800
+                self.dir = self.face_dir = -1
+            elif self.x <= 0:
+                self.x = 0
+                self.dir = self.face_dir = 1
             if get_time() - self.auto_run_start_time >= 5.0:
                 self.dir = 0
                 self.auto_run_end()
