@@ -3,6 +3,7 @@ from pico2d import (load_image, get_time, SDL_KEYDOWN, SDL_KEYUP,
 
 RUN_SPEED = 5
 AUTORUN_SPEED = 15
+AUTORUN_SCALE = 2
 IDLE_TIMEOUT = 5.0
 AUTORUN_TIMEOUT = 5.0
 
@@ -117,8 +118,11 @@ class AutoRun:
 
     @staticmethod
     def draw(boy):
+        size = 100 * AUTORUN_SCALE
         row = 100 if boy.face_dir == 1 else 0
-        boy.image.clip_draw(boy.frame * 100, row, 100, 100, boy.x, boy.y)
+        # raise the center so the feet stay on the ground after scaling
+        y = boy.y + (size - 100) // 2
+        boy.image.clip_draw(boy.frame * 100, row, 100, 100, boy.x, y, size, size)
 
 
 class StateMachine:
