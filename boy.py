@@ -1,10 +1,10 @@
-from pico2d import (load_image, SDL_KEYDOWN, SDL_KEYUP,
-                    SDLK_LEFT, SDLK_RIGHT)
+from pico2d import (load_image, get_time, SDL_KEYDOWN, SDL_KEYUP,
+                    SDLK_SPACE, SDLK_LEFT, SDLK_RIGHT)
 from transitions import Machine
 
 
 class Boy:
-    states = ['IDLE', 'RUN']
+    states = ['IDLE', 'SLEEP', 'RUN']
 
     def __init__(self):
         self.x, self.y = 400, 90
@@ -14,12 +14,20 @@ class Boy:
         self.image = load_image('animation_sheet.png')
         self.machine = Machine(model=self, states=Boy.states, initial='IDLE',
                                auto_transitions=False)
-        self.machine.add_transition('run', 'IDLE', 'RUN')
+        self.machine.add_transition('time_out', 'IDLE', 'SLEEP')
+        self.machine.add_transition('space_down', 'SLEEP', 'IDLE')
+        self.machine.add_transition('run', ['IDLE', 'SLEEP'], 'RUN')
         self.machine.add_transition('stop', 'RUN', 'IDLE')
+        self.idle_start_time = get_time()
+
+    def on_enter_IDLE(self):
+        self.idle_start_time = get_time()
 
     def handle_event(self, event):
         if event.type == SDL_KEYDOWN:
-            if event.key in (SDLK_LEFT, SDLK_RIGHT):
+            if self.state == 'SLEEP' and event.key == SDLK_SPACE:
+                self.space_down()
+            elif event.key in (SDLK_LEFT, SDLK_RIGHT):
                 self.dir = self.face_dir = 1 if event.key == SDLK_RIGHT else -1
                 if self.state != 'RUN':
                     self.run()
@@ -31,6 +39,8 @@ class Boy:
     def update(self):
         if self.state == 'IDLE':
             self.frame = (self.frame + 1) % 8
+            if get_time() - self.idle_start_time >= 5.0:
+                self.time_out()
         elif self.state == 'RUN':
             self.frame = (self.frame + 1) % 8
             self.x += self.dir * 5
