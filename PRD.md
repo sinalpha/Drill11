@@ -2,7 +2,7 @@
 
 ## 1. 개요
 pico2d 기반 소년(Boy) 게임에 **AutoRun(자동 무적 런)** 상태를 추가한다.
-소년의 동작은 `transitions` 라이브러리의 `Machine`으로 상태(IDLE / SLEEP / RUN / AUTORUN)와 전환을 정의해 구현한다.
+소년의 동작은 상태 클래스(Idle / Sleep / Run / AutoRun)와 상태 머신(StateMachine)으로 구현한다.
 
 ## 2. 요구사항
 | # | 요구사항 |
@@ -12,7 +12,7 @@ pico2d 기반 소년(Boy) 게임에 **AutoRun(자동 무적 런)** 상태를 추
 | R3 | AutoRun 중 화면 좌/우 끝(0, 800)에 닿으면 자동으로 방향을 전환한다. |
 | R4 | AutoRun 상태에서 5초 이상 경과하면 Idle 상태로 돌아간다. |
 | R5 | AutoRun 상태에서 방향키(좌/우)를 누르면 AutoRun이 취소되고, 누른 방향으로 움직이는 Run 상태가 된다. |
-| R6 | 상태 머신(`Machine`)에 `AUTORUN` 상태와 전환을 추가해서 구현한다. |
+| R6 | 반드시 `AutoRun` **상태 클래스**를 추가해서 구현한다. |
 | R7 | 상태 다이어그램을 그려 저장소에 이미지 파일로 포함한다. (`state_diagram.png`) |
 
 ## 3. 상태 및 이벤트
@@ -35,7 +35,7 @@ pico2d 기반 소년(Boy) 게임에 **AutoRun(자동 무적 런)** 상태를 추
 다이어그램: ![state diagram](state_diagram.png)
 
 ## 4. 구현 구조
-- `boy.py`: `Boy` 클래스. `states`와 `add_transition`으로 상태 전환을 정의하고, `handle_event / update / draw`에서 상태별 동작을 처리
+- `boy.py`: `Idle`, `Sleep`, `Run`, `AutoRun` 상태 클래스(`enter / exit / do / draw`), `StateMachine`, `Boy`
 - `main.py`: 게임 루프, 이벤트 전달
 - `grass.py`: 배경 잔디
 
