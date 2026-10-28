@@ -32,7 +32,8 @@ class Boy:
                 if self.state != 'RUN':
                     self.run()
         elif event.type == SDL_KEYUP and self.state == 'RUN':
-            if event.key in (SDLK_LEFT, SDLK_RIGHT):
+            if (event.key == SDLK_RIGHT and self.dir == 1) or \
+                    (event.key == SDLK_LEFT and self.dir == -1):
                 self.dir = 0
                 self.stop()
 
