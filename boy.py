@@ -1,6 +1,7 @@
 from pico2d import (load_image, get_time, SDL_KEYDOWN, SDL_KEYUP,
                     SDLK_SPACE, SDLK_LEFT, SDLK_RIGHT, SDLK_a)
 
+CANVAS_WIDTH = 800
 RUN_SPEED = 5
 AUTORUN_SPEED = 15
 AUTORUN_SCALE = 2
@@ -100,6 +101,8 @@ class Run:
 
 
 class AutoRun:
+    """Runs left and right on its own, faster and bigger, for 5 seconds."""
+
     @staticmethod
     def enter(boy, e):
         boy.dir = boy.face_dir
@@ -113,6 +116,12 @@ class AutoRun:
     def do(boy):
         boy.frame = (boy.frame + 1) % 8
         boy.x += boy.dir * AUTORUN_SPEED
+        if boy.x >= CANVAS_WIDTH:
+            boy.x = CANVAS_WIDTH
+            boy.dir = boy.face_dir = -1
+        elif boy.x <= 0:
+            boy.x = 0
+            boy.dir = boy.face_dir = 1
         if get_time() - boy.start_time >= AUTORUN_TIMEOUT:
             boy.state_machine.handle_event(('TIME_OUT', 0))
 
