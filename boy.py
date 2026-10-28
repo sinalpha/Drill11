@@ -62,8 +62,13 @@ class Boy:
                 self.auto_run_end()
 
     def draw(self):
-        if self.state in ('RUN', 'AUTORUN'):
+        size = 100
+        if self.state == 'AUTORUN':
+            row = 100 if self.face_dir == 1 else 0
+            size = 200
+        elif self.state == 'RUN':
             row = 100 if self.face_dir == 1 else 0
         else:
             row = 300 if self.face_dir == 1 else 200
-        self.image.clip_draw(self.frame * 100, row, 100, 100, self.x, self.y)
+        self.image.clip_draw(self.frame * 100, row, 100, 100,
+                             self.x, self.y + (size - 100) // 2, size, size)
